@@ -102,18 +102,18 @@
   # in the center)
   "n_init_states_lst" : [
     # 0,
-    1,
+#    1,
     10,
-    20,
+#    20,
     # 50,
   ],
 
   # How many steps in an episode of level editing?
   "n_steps_lst": [
 #    1,
-     10,
+#     10,
 #    20,
-#    50,
+    50,
 #     100,
   ],
 

@@ -1,24 +1,22 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=16
 
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
-#SBATCH --time=2:00:00
-#SBATCH --mem=50GB
-#SBATCH --job-name=evalevopcg
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=se2161@nyu.edu
-#SBATCH --output=evalevopcg_%j.out
+#SBATCH --time=72:00:00
+#SBATCH --partition=stampede
 
-## cd /scratch/se2161/evo-pcgrl
+#SBATCH --job-name=evopcg
+##SBATCH --mail-type=BEGIN,END
+##SBATCH --mail-user=se2161@nyu.edu
+#SBATCH --error=/home-mscluster/mgumpu/control_pcgrl/logs/out_log.out
+#SBATCH -output=/home-mscluster/mgumpu/control_pcgrl/logs/err_log.err
 
-## Is this actually necessary?
-## source activate
-
-## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-## conda activate pcgrl
+source /home-mscluster/mgumpu/.bashrc
+cd /home-mscluster/mgumpu/control_pcgrl/ || exit
+conda activate pcgrl
 
 python evolve.py -la 0
