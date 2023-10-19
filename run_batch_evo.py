@@ -146,12 +146,12 @@ def launch_batch(args, exp_name, collect_params=False):
                     "model": model,
                     "multi_thread": not args.single_thread,
                     "n_aux_chan": n_aux_chan,
-                    "n_generations": 10, # todo musa config
+                    "n_generations": 50000, # todo musa config
                     "n_init_states": n_init_states,
                     "n_steps": n_steps,
                     "problem": prob,
                     "representation": rep,
-                    "save_interval": 10 if args.local else 100,
+                    "save_interval": 100, #10 if args.local else 100,
                     "save_levels": True,
                     "step_size": step_size,
                     "render": args.render,

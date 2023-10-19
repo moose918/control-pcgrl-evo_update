@@ -18,4 +18,6 @@ cd /home-mscluster/mgumpu/control_pcgrl || exit
 # We try to activate the relevant conda environment below.
 conda activate pcgrl
 
-python3 run_batch_evo.py
+python3 run_batch_evo.py --local || exit
+python3 run_batch_evo.py --local --evaluate || exit
+python3 run_batch_evo.py --local --cross-eval || exit
