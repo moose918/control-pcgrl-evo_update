@@ -3,7 +3,7 @@
 ##SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
 
-#SBATCH --partition=bigbatch
+#SBATCH --partition=stampede
 #SBATCH --time=72:00:00
 
 #SBATCH --job-name=cppn_batch
@@ -11,7 +11,8 @@
 #SBATCH --output=/home-mscluster/mgumpu/control-pcgrl-evo_update/logs/cppn_out.log
 #SBATCH --error=/home-mscluster/mgumpu/control-pcgrl-evo_update/logs/cppn_err.log
 
-
+export RAY_LOG_TO_STDERR=1
+export GLOG_logtostderr=1
 source /home-mscluster/mgumpu/.bashrc
 cd /home-mscluster/mgumpu/control-pcgrl-evo_update || exit
 cp ./configs/evo/batch_CPPN.yaml ./configs/evo/batch.yaml
