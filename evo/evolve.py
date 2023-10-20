@@ -3129,7 +3129,7 @@ if __name__ == "__main__":
 
 
     if THREADS:
-        ray.init()
+        ray.init(log_to_driver=False) # todo musa ray logging issue
 
     evolver: EvoPCGRL = None
 
