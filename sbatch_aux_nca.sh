@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
 ##SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=16
 
-#SBATCH --partition=stampede
+#SBATCH --partition=bigbatch
 #SBATCH --time=72:00:00
 
 #SBATCH --job-name=aux_nca_batch
