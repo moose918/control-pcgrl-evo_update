@@ -172,7 +172,7 @@ try:
         """Executor that encapsulate ray concurrency functions. Need the ray package to be installed and importable."""
         def __init__(self) -> None:
             num_cpus = psutil.cpu_count(logical=True)
-            ray.init(num_cpus=num_cpus, ignore_reinit_error=True)
+            ray.init(num_cpus=num_cpus, ignore_reinit_error=True, log_to_driver=False) #todo Musa disable logging
             #self.nb_actors = num_cpus
             #self.actors = [RayDeployment.remote(i) for i in range(self.nb_actors)]
             #self.current_actor_idx = 0
