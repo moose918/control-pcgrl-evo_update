@@ -11,11 +11,11 @@
 
 
 #SBATCH --job-name=evopcg
-#SBATCH --error=/home-mscluster/mgumpu/control_pcgrl/logs/run.out
-#SBATCH -output=/home-mscluster/mgumpu/control_pcgrl/logs/run.err
+#SBATCH --error=/home-mscluster/mgumpu/control-pcgrl-evo_update/logs/run.out
+#SBATCH -output=/home-mscluster/mgumpu/control-pcgrl-evo_update/logs/run.err
 
 source /home-mscluster/mgumpu/.bashrc
-cd /home-mscluster/mgumpu/control_pcgrl/ || exit
+cd /home-mscluster/mgumpu/control-pcgrl-evo_update/ || exit
 conda activate pcgrl
 
 start=$SECONDS
