@@ -227,7 +227,7 @@ def launch_batch(args, exp_name, collect_params=False):
                 # Turned off for mid-training evals
 #                                           os.system("ray stop")
             else:
-                os.system("sbatch {}".format(script_name))
+                os.system("sbatch --partition=stampede {}".format(script_name))
             i += 1
 
     if collect_params:

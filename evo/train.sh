@@ -19,7 +19,7 @@ cd /home-mscluster/mgumpu/control-pcgrl-evo_update/ || exit
 conda activate pcgrl
 
 start=$SECONDS
-while ! python evo/evolve.py -la 1
+while ! python evo/evolve.py -la 3
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
