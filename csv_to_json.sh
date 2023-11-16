@@ -1,0 +1,1 @@
+python convert_csv_to_json.py "./evo_runs/binary-cellular_NCA_['symmetry', 'path-length']_1-batch_10-pass_0.05-stepSize_fixElites_1/eval_levels.csv" "./evo_runs/binary-cellular_NCA_['symmetry', 'path-length']_1-batch_10-pass_0.05-stepSize_fixElites_1/out_lvl.json"
