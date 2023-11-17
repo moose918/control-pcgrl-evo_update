@@ -15,7 +15,6 @@ from torch.nn import Conv2d, Conv3d, Linear
 from cbam import CBAM
 from utils import get_one_hot_map, draw_net
 
-
 class ResettableNN(nn.Module):
     """Neural networks that may have internal state that needs to be reset.
     
@@ -773,6 +772,7 @@ class GeneratorNNDenseSqueeze(ResettableNN):
             #           x = th.sigmoid(x)
 
         return x, False
+
 
 
 class GeneratorNNDense(ResettableNN):

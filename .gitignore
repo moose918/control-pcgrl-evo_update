@@ -5,7 +5,7 @@
 # evo/eval.sh
 #*/train.sh
 #*/eval.sh
-
+tmp_ray/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

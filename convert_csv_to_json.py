@@ -17,7 +17,11 @@ print(f"Command-line arguments: {src_file} {dst_file}")
 
 df = pd.read_csv(src_file)
 
-levels = df['level']
+try:
+    levels = df['level']
+except KeyError as e:
+    levels = df.iloc[:, 0]
+
 json_levels = levels.apply(lambda x: ast.literal_eval(x))
 json_levels = json_levels.to_list()
 

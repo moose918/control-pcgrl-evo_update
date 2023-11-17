@@ -352,6 +352,7 @@ def flat_to_turtle(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=No
 def cut_border_action_3d(action, **kwargs):
     return action[:, 1:-1, 1:-1, 1:-1], False
 
+
 preprocess_action_funcs = {
     "NCA": {
         "cellular": id_action,
@@ -368,14 +369,12 @@ preprocess_action_funcs = {
     },
     "CNN": {
         # will try to build this logic into the model
-        "cgan": flat_to_box,
         "cellular": flat_to_box,
         "wide": flat_to_wide,
         "narrow": flat_to_narrow,
         "turtle": flat_to_turtle,
     },
 }
-
 
 
 def id_observation(obs, **kwargs):
@@ -392,6 +391,7 @@ def local_observation(obs, **kwargs):
 
     return obs
 
+
 preprocess_observation_funcs = {
     "NCA": {
         "cellular": id_observation,
@@ -404,14 +404,12 @@ preprocess_observation_funcs = {
         "cellular3Dholey": id_observation,
     },
     "CNN": {
-        "cgan": id_observation,
         "cellular": id_observation,
         "wide": id_observation,
         "narrow": local_observation,
         "turtle": local_observation,
     },
 }
-
 
 
 @njit
@@ -924,9 +922,9 @@ def multi_evo(
     if init_states is None:
         init_states, door_coords = get_init_states(init_states_archive, door_coords_archive, tuple(index))
 
-    # todo musa adjusted what multithreaded model is
-    model = set_weights(model, model_w, algo=ALGO) if MODEL != "CNN" else model
-
+    # if proc_id is not None:
+    #     print("simulating id: {}".format(proc_id))
+    model = set_weights(model, model_w, algo=ALGO)
     result = simulate(
         env=env,
         model=model,
@@ -1204,73 +1202,21 @@ def simulate(
             #           in_tensor = th.unsqueeze(
             #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = th.unsqueeze(th.Tensor(obs), 0)
-
-            # todo musa preprocessing beginning
-            # Example tensor size
-            tensor_size = th.Size([1, 2, 16, 16])
-            # Define the expected size
-            expected_size = (1, 2, 16, 16)  # Replace this with your expected size
-            # Check if the tensor size matches the expected size
-            if MODEL == "CNN" and tensor_size == th.Size(expected_size):
-                PART = -8
-                noise = th.rand((1, 1, 16, 16)).normal_(0, 1)
-                model.prev_frame = in_tensor
-                model.curr_frame = th.rand((1, 2, 32, 16)).normal_(0, 1)
-
-                single_level = np.array([in_tensor.numpy()[0][0]], dtype=int)
-                onehot = np.eye(2, dtype="uint8")[
-                    single_level
-                ]  # create a one hot mapping for the features
-                onehot = np.rollaxis(onehot, 3, 1)  # (num_samples, chann.=2, h=16, w=16)
-                padded = np.full((onehot.shape[0], onehot.shape[1], 32, 32), 0.0, dtype=np.float32)
-                padded[:, :, 8:-8, 8:-8] = onehot
-                model.prev_frame = th.tensor(padded)
-
-                model.prev_frame = th.rand((1, 2, 32, 16)).normal_(0, 1)
-
-                for i in range(4):
-                    noise = th.rand((1, 1, 16, 16)).normal_(0, 1)
-
-                    gen_input = th.cat(
-                        (noise, model.prev_frame[:, conditional_channels, 8:-8, -16:]), dim=1
-                    )
-
-                    action, done = model(gen_input)
-
-                    model.prev_frame = th.cat(
-                        (model.curr_frame[:, :, :, PART:], action[:, :, :, 16:PART]), dim=3
-                    )
-
-                    model.curr_frame = action[:, :, :, -16:]
-
-                done = True
-            else:
-                gen_input = in_tensor
-
-                action, done = model(gen_input)
-
-            #todo musa fix output
-            if MODEL == "CNN":
-                action = action[:, :, 8:-8, -16:].data
-
+            action, done = model(in_tensor)
             action = action[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
             if not IS_HOLEY:
                 int_map = env.unwrapped._rep.unwrapped._map  # TODO: can use `_get_rep_map()` as below, right?
             else:
                 int_map = env.unwrapped._get_rep_map()
-            if MODEL != "CNN":
-                action, skip = preprocess_action(
-                    action,
-                    int_map=int_map,
-                    x=env.unwrapped._rep.unwrapped._x,
-                    y=env.unwrapped._rep.unwrapped._y,
-                    n_dirs=N_DIRS,
-                    n_tiles=n_tile_types,
-                )
-            else:
-                skip = None
-
+            action, skip = preprocess_action(
+                action,
+                int_map=int_map,
+                x=env.unwrapped._rep.unwrapped._x,
+                y=env.unwrapped._rep.unwrapped._y,
+                n_dirs=N_DIRS,
+                n_tiles=n_tile_types,
+            )
             if not ENV3D:
                 change, [x, y] = env.unwrapped._rep.update(action, continuous=CONTINUOUS)
             else:
@@ -1719,7 +1665,6 @@ class EvoPCGRL:
             N_DIRS = 0
         reps_to_out_chans = {
             "cellular": self.n_tile_types,
-            "cgan": self.n_tile_types+1,
             "cellular3D": self.n_tile_types,
             "cellular3Dholey": self.n_tile_types,
             "wide": self.n_tile_types,
@@ -1729,7 +1674,6 @@ class EvoPCGRL:
 
         reps_to_in_chans = {
             "cellular": self.n_tile_types,
-            "cgan": self.n_tile_types + 1,
             "cellular3D": self.n_tile_types,
             "cellular3Dholey": self.n_tile_types,
             "wide": self.n_tile_types,
@@ -1747,31 +1691,29 @@ class EvoPCGRL:
                 *self.env.observation_space["map"].shape,
             )
 
-            # todo musa working with 2d model
-            # if isinstance(self.env.action_space, gym.spaces.Box):
-            #     action_shape = self.env.action_space.shape
-            #     assert len(action_shape) == 3
-            #     n_flat_actions = action_shape[0] * action_shape[1] * action_shape[2]
-            # elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
-            #     nvec = self.env.action_space.nvec
-            #     assert len(nvec) == 3
-            #     n_flat_actions = nvec[0] + nvec[1] + nvec[2]
-            # elif isinstance(self.env.action_space, gym.spaces.Discrete):
-            #     n_flat_actions = self.env.action_space.n
-            # else:
-            #     raise NotImplementedError(
-            #         "I don't know how to handle this action space: {}".format(
-            #             type(self.env.action_space)
-            #         )
-            #     )
-
+            if isinstance(self.env.action_space, gym.spaces.Box):
+                action_shape = self.env.action_space.shape
+                assert len(action_shape) == 3
+                n_flat_actions = action_shape[0] * action_shape[1] * action_shape[2]
+            elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
+                nvec = self.env.action_space.nvec
+                assert len(nvec) == 3
+                n_flat_actions = nvec[0] + nvec[1] + nvec[2]
+            elif isinstance(self.env.action_space, gym.spaces.Discrete):
+                n_flat_actions = self.env.action_space.n
+            else:
+                raise NotImplementedError(
+                    "I don't know how to handle this action space: {}".format(
+                        type(self.env.action_space)
+                    )
+                )
             #todo musa adding CNN model
             from app.models.custom import Generator
             self.gen_model = Generator(
         latent_size=(len(conditional_channels) + 1, 16, 16), out_size=(NUM_CHANNELS, 32, 32)
 
     )
-            self.gen_model.load_state_dict(th.load(os.path.join(SAVE_PATH,"netG_epoch_10000_0_32.pth"), map_location=th.device('cpu')))
+            self.gen_model.load_state_dict(th.load(os.path.join(SAVE_PATH,"netG_epoch_4999.pth"), map_location=th.device('cpu')))
         # self.gen_model = GeneratorNNDense(
             #     n_in_chans=self.n_tile_types,
             #     n_actions=n_out_chans,
@@ -2193,7 +2135,6 @@ class EvoPCGRL:
             max_changes *= self.env.unwrapped._prob._length
 
         reps_to_steps = {
-            "cgan": max_ca_steps,
             "cellular": max_ca_steps,
             "cellular3D": max_ca_steps,
             "cellular3Dholey": max_ca_steps,
@@ -2387,7 +2328,47 @@ class EvoPCGRL:
             # aggregate scores of individuals currently in the grid
             save_train_stats(objs=objs, archive=archive, args=args)
 
-            eval_bc_names = list(set([tuple(self.bc_names)]))
+            # Basically deprecated, not really fuckin' with this.
+            # Toss our elites into an archive with different BCs. For fun!
+            # The level spaces which we will attempt to map to
+            problem_eval_bc_names = {
+                "binary": [
+#                   ("regions", "path-length")
+                      ],
+                "zelda": [
+#                   ("nearest-enemy", "path-length"),
+#                   ("symmetry", "path-length"),
+#                   ("emptiness", "path-length"),
+                ],
+                "sokoban": [
+#                   ("crate", "sol-length")
+                ],
+                "smb": [
+#                   ("emptiness", "jumps")
+                ],
+                "loderunner": [
+#                   ("emptiness", "path-length"),
+#                   ("symmetry", "path-length"),
+                ],
+                "face": [
+                    ("brightness", "entropy"),
+                ],
+                "microstructure": []
+            }
+
+#           for k in problem_eval_bc_names.keys():
+#               problem_eval_bc_names[k] += [
+#                   # ("NONE"),
+#                   ("emptiness", "symmetry")
+#               ]
+
+            eval_bc_names = []
+            for (k, v) in problem_eval_bc_names.items():
+                if k in PROBLEM:
+                    eval_bc_names = v
+                    break
+
+            eval_bc_names = list(set([tuple(self.bc_names)] + eval_bc_names))
 
             if not CMAES:
                 if ALGO == "ME":
@@ -2527,7 +2508,6 @@ class EvoPCGRL:
             n_train_bcs = len(self.bc_names)
 
             if THREADS:
-
                 futures = [
                     multi_evo.remote(
                         self.env,
@@ -2653,9 +2633,7 @@ class EvoPCGRL:
                             init_states_archive, door_coords_archive, tuple(idxs[i])
                         )
 
-                    # todo musa adjusted what gen_model is
-                    gen_model = set_weights(self.gen_model, model, algo=ALGO) if MODEL != "CNN" else self.gen_model
-
+                    gen_model = set_weights(self.gen_model, model, algo=ALGO)
                     level_json, batch_reward, final_bcs, (
                         time_penalty,
                         targets_penalty,
@@ -2690,33 +2668,19 @@ class EvoPCGRL:
                         reliability_scores,
                     )
 
-                    i += 1
-
-            # todo musa eval_archive isn't done in single thread runs
-            try:
-                if eval_archive:
-                    pass
-            except UnboundLocalError as e:
-                eval_archive = [0]
-                n_filled_bins = 1
-                eval_qd_score = 1
-                n_total_bins = 1
-
-            if eval_archive is not None:
-
-                if ALGO == "ME":
-                    n_filled_bins = eval_archive.filled_bins
-                    assert len(models) == archive.filled_bins
-                    n_total_bins = archive.size
-                else:
-                    n_filled_bins = len(eval_archive._occupied_indices)
-                    assert len(models) == len(archive._occupied_indices)
-                    n_total_bins = archive.bins
-                eval_qd_score = get_qd_score(eval_archive, self.args)
+            if ALGO == "ME":
+                n_filled_bins = eval_archive.filled_bins
+                assert len(models) == archive.filled_bins
+                n_total_bins = archive.size
+            else:
+                n_filled_bins = len(eval_archive._occupied_indices)
+                assert len(models) == len(archive._occupied_indices)
+                n_total_bins = archive.bins
             qd_score = get_qd_score(archive, self.args)
+            eval_qd_score = get_qd_score(eval_archive, self.args)
             stats = {
                 "generations completed": self.n_itr,
-                "% train archive full": len(models) / (n_total_bins if n_total_bins else 1),
+                "% train archive full": len(models) / n_total_bins,
                 "archive size": n_filled_bins,
                 "QD score": qd_score,
                 "eval QD score": eval_qd_score,
@@ -2848,6 +2812,10 @@ class EvoPCGRL:
             #           input("Mean behavior characteristics:\n\t{}: {}\n\t{}: {}\nMean reward:\n\tTotal: {}\n\ttime: {}\n\ttargets: {}\n\tvariance: {}\n\tdiversity: {}\nPress any key for next generator...".format(
             #               self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i], objs[i], time_penalty, targets_penalty, variance_penalty, diversity_bonus))
             i += 1
+
+
+#           if i == len(models):
+#               i=0
 
 
 def gen_door_coords(n_init_states, env):
